@@ -39,8 +39,10 @@ if __name__ == '__main__':
     parser.add_argument('bw', help='bandwidth of the capture')
     parser.add_argument('MAC', help='MAC of the Target Device')
     parser.add_argument('num_packet_to_process', help='num_packet_to_process')
+    parser.add_argument('saved_timestamps', help='saved_timestamps')
     parser.add_argument('saved_vmatrices', help='saved_vmatrices')
     parser.add_argument('saved_angles', help='saved_angles')
+    
 
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -53,8 +55,10 @@ if __name__ == '__main__':
     bw = int(args.bw)
     MAC = args.MAC
     num_packet_to_process = int(args.num_packet_to_process)
+    saved_timestamps = args.saved_timestamps
     saved_vmatrices = args.saved_vmatrices
     saved_angles = args.saved_angles
+    
 
     # Check if mu-mimo is selected for AX standard
     if mimo == "MU" and standard == "AX":
@@ -125,11 +129,17 @@ if __name__ == '__main__':
     bfi_angles_all_packets = []
     v_matrices_all = []
 
+    # Initialize list to store timestamp
+    timestamps = []
+
     # Process each packet
     for p in range(num_packet_to_process):
     	# Extract raw frame data from the packet
         packet = packets.__next__().frame_raw.value
         print('packet___________ ' + str(p) + '\n\n\n')
+
+        # Extract timestamp
+        timestamps.append(float(packet.sniff_timestamp))
 
         # Extract header information from the raw frame data
         Header_rivision_dec = hex2dec(flip_hex(packet[0:2]))
@@ -277,6 +287,7 @@ if __name__ == '__main__':
         v_matrices_all.append(vmatrices(angle, phi_bit, psi_bit, NSUBC_VALID, Nr, Nc_users, config))
         bfi_angles_all_packets.append(bfi_angles(Feed_back_angles_bin_chunk, LSB, NSUBC_VALID, order_bits))
 
-    # Save v-matrices and angles to files
+    # Save timestamps, v-matrices and angles to files
+    np.save(saved_timestamps, timestamps)
     np.save(saved_vmatrices, v_matrices_all)
     np.save(saved_angles, bfi_angles_all_packets)
