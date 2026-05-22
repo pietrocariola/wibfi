@@ -135,11 +135,13 @@ if __name__ == '__main__':
     # Process each packet
     for p in range(num_packet_to_process):
     	# Extract raw frame data from the packet
+        pkt = packets.__next__()
         packet = packets.__next__().frame_raw.value
         print('packet___________ ' + str(p) + '\n\n\n')
 
         # Extract timestamp
-        timestamps.append(float(packet.sniff_timestamp))
+        timestamps.append(float(pkt.sniff_timestamp))
+        del(pkt)
 
         # Extract header information from the raw frame data
         Header_rivision_dec = hex2dec(flip_hex(packet[0:2]))
