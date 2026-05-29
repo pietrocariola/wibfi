@@ -34,12 +34,12 @@ if __name__ == '__main__':
     # Define command-line arguments
     parser.add_argument('file_name', help='File name to process')
     parser.add_argument('standard', help='which standard are you operating on, options are "AC" or "AX" ')
-    parser.add_argument('mimo', help='which type of network are you forming, options are "SU" for su-mimo or "MU" for mu-mimo ')
+    # parser.add_argument('mimo', help='which type of network are you forming, options are "SU" for su-mimo or "MU" for mu-mimo ')
     parser.add_argument('config', help='which type of antenna config you have, for now, available options are 3x1 with AC and 4x2 with AX')
     parser.add_argument('bw', help='bandwidth of the capture')
     parser.add_argument('MAC', help='MAC of the Target Device')
-    parser.add_argument('num_packet_to_process', help='num_packet_to_process')
-    parser.add_argument('saved_timestamps', help='saved_timestamps')
+    # parser.add_argument('num_packet_to_process', help='num_packet_to_process')
+    parser.add_argument('saved_timestamps', help='saved_timestamps') # add timestamp
     parser.add_argument('saved_vmatrices', help='saved_vmatrices')
     parser.add_argument('saved_angles', help='saved_angles')
     
@@ -50,22 +50,21 @@ if __name__ == '__main__':
     # Set variables based on command-line arguments
     file_name = args.file_name
     standard = args.standard
-    mimo = args.mimo
+    # mimo = args.mimo
     config = args.config
     bw = int(args.bw)
     MAC = args.MAC
-    num_packet_to_process = int(args.num_packet_to_process)
+    # num_packet_to_process = int(args.num_packet_to_process)
     saved_timestamps = args.saved_timestamps
     saved_vmatrices = args.saved_vmatrices
     saved_angles = args.saved_angles
     
 
     # Check if mu-mimo is selected for AX standard
-    if mimo == "MU" and standard == "AX":
-        print("mu-mimo is not available for AX yet, we will add this feature soon")
-    else:
-        print("Processing")
-
+    if standard == "AX":
+        print("WARNING: mu-mimo is not available for AX yet, we will add this feature soon")
+    
+    print("Processing")
 
     # Check standard and set parameters accordingly
     if standard == "AC":
@@ -120,7 +119,7 @@ if __name__ == '__main__':
     elif standard == "AC":
         packets = pyshark.FileCapture(
             input_file=file_name,
-            display_filter='wlan.vht.mimo_control.feedbacktype==%s && wlan.addr==%s' % (mimo, MAC),
+            display_filter='wlan.vht.mimo_control.feedbacktype && wlan.addr==%s' % (MAC),
             use_json=True,
             include_raw=True
         )._packets_from_tshark_sync()
@@ -133,15 +132,14 @@ if __name__ == '__main__':
     timestamps = []
 
     # Process each packet
-    for p in range(num_packet_to_process):
-    	# Extract raw frame data from the packet
-        pkt = packets.__next__()
-        packet = packets.__next__().frame_raw.value
-        print('packet___________ ' + str(p) + '\n\n\n')
+    for i, pkt in enumerate(packets):
+        print('packet___________ ' + str(i) + '\n')
 
         # Extract timestamp
         timestamps.append(float(pkt.sniff_timestamp))
-        del(pkt)
+
+    	# Extract raw frame data from the packet
+        packet = pkt.frame_raw.value        
 
         # Extract header information from the raw frame data
         Header_rivision_dec = hex2dec(flip_hex(packet[0:2]))
@@ -164,6 +162,7 @@ if __name__ == '__main__':
             packet_mimo_control = packet[(i + 52):(i + 62)]
             packet_mimo_control_binary = ''.join(format(int(char, 16), '04b') for char in flip_hex(packet_mimo_control))
             codebook_info = packet_mimo_control_binary[30] 
+            mimo = 'SU'
             packet_snr = packet[(i + 62):(i + 62 + 2*int(config[-1]))]
             frame_check_sequence = packet[-8:]
 
@@ -171,6 +170,7 @@ if __name__ == '__main__':
             packet_mimo_control = packet[(i + 52):(i + 58)]
             packet_mimo_control_binary = ''.join(format(int(char, 16), '04b') for char in flip_hex(packet_mimo_control))
             codebook_info = packet_mimo_control_binary[13]
+            mimo = 'MU' if packet_mimo_control_binary[12] == "1" else 'SU' # first bit is bit 0
             packet_snr = packet[(i + 58):(i + 58 + 2*int(config[-1]))]
             frame_check_sequence = packet[-8:]
 
